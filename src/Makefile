@@ -413,7 +413,7 @@ profile-build:
 	$(PGOBENCH) > /dev/null
 	@echo ""
 	@echo "Step 3/4. Building final executable ..."
-	@touch *.cpp *.h syzygy/*.cpp syzygy/*.h
+	touch *.cpp *.h syzygy/*.cpp syzygy/*.h
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) $(profile_use)
 	@echo ""
 	@echo "Step 4/4. Deleting profile data ..."
@@ -458,16 +458,16 @@ config-sanity:
 	@echo ""
 	@echo "Testing config sanity. If this fails, try 'make help' ..."
 	@echo ""
-	@test "$(debug)" = "yes" || test "$(debug)" = "no"
-	@test "$(optimize)" = "yes" || test "$(optimize)" = "no"
-	@test "$(arch)" = "any" || test "$(arch)" = "x86_64" || test "$(arch)" = "i386" || \
+	test "$(debug)" = "yes" || test "$(debug)" = "no"
+	test "$(optimize)" = "yes" || test "$(optimize)" = "no"
+	test "$(arch)" = "any" || test "$(arch)" = "x86_64" || test "$(arch)" = "i386" || \
 	 test "$(arch)" = "ppc64" || test "$(arch)" = "ppc" || test "$(arch)" = "armv7"
-	@test "$(bits)" = "32" || test "$(bits)" = "64"
-	@test "$(prefetch)" = "yes" || test "$(prefetch)" = "no"
-	@test "$(popcnt)" = "yes" || test "$(popcnt)" = "no"
-	@test "$(sse)" = "yes" || test "$(sse)" = "no"
-	@test "$(pext)" = "yes" || test "$(pext)" = "no"
-	@test "$(comp)" = "gcc" || test "$(comp)" = "icc" || test "$(comp)" = "mingw" || test "$(comp)" = "clang"
+	test "$(bits)" = "32" || test "$(bits)" = "64"
+	test "$(prefetch)" = "yes" || test "$(prefetch)" = "no"
+	test "$(popcnt)" = "yes" || test "$(popcnt)" = "no"
+	test "$(sse)" = "yes" || test "$(sse)" = "no"
+	test "$(pext)" = "yes" || test "$(pext)" = "no"
+	test "$(comp)" = "gcc" || test "$(comp)" = "icc" || test "$(comp)" = "mingw" || test "$(comp)" = "clang"
 
 $(EXE): $(OBJS)
 	$(CXX) -o $@ $(OBJS) $(LDFLAGS)
@@ -488,11 +488,11 @@ gcc-profile-use:
 	all
 
 gcc-profile-clean:
-	@rm -rf *.gcda *.gcno syzygy/*.gcda syzygy/*.gcno bench.txt
+	rm -rf *.gcda *.gcno syzygy/*.gcda syzygy/*.gcno bench.txt
 
 icc-profile-prepare:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) icc-profile-clean
-	@mkdir profdir
+	mkdir profdir
 
 icc-profile-make:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
@@ -505,10 +505,10 @@ icc-profile-use:
 	all
 
 icc-profile-clean:
-	@rm -rf profdir bench.txt
+	rm -rf profdir bench.txt
 
 .depend:
-	-@$(CXX) $(DEPENDFLAGS) -MM $(OBJS:.o=.cpp) > $@ 2> /dev/null
+	-$(CXX) $(DEPENDFLAGS) -MM $(OBJS:.o=.cpp) > $@ 2> /dev/null
 
 -include .depend
 
