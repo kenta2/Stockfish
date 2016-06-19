@@ -60,11 +60,11 @@ static uint64 calc_key(Position& pos, int mirror)
   color = !mirror ? WHITE : BLACK;
   for (pt = PAWN; pt <= KING; ++pt)
     for (i = popcount(pos.pieces(color, pt)); i > 0; i--)
-      key ^= Zobrist::psq[WHITE][pt][i - 1];
+      key ^= Zobrist::psq[WHITE][pt][i - 1].get_syzygy();
   color = ~color;
   for (pt = PAWN; pt <= KING; ++pt)
     for (i = popcount(pos.pieces(color, pt)); i > 0; i--)
-      key ^= Zobrist::psq[BLACK][pt][i - 1];
+      key ^= Zobrist::psq[BLACK][pt][i - 1].get_syzygy();
 
   return key;
 }
@@ -83,11 +83,11 @@ static uint64 calc_key_from_pcs(int *pcs, int mirror)
   color = !mirror ? 0 : 8;
   for (pt = PAWN; pt <= KING; ++pt)
     for (i = 0; i < pcs[color + pt]; i++)
-      key ^= Zobrist::psq[WHITE][pt][i];
+      key ^= Zobrist::psq[WHITE][pt][i].get_syzygy();
   color ^= 8;
   for (pt = PAWN; pt <= KING; ++pt)
     for (i = 0; i < pcs[color + pt]; i++)
-      key ^= Zobrist::psq[BLACK][pt][i];
+      key ^= Zobrist::psq[BLACK][pt][i].get_syzygy();
 
   return key;
 }
@@ -120,10 +120,11 @@ static int probe_wdl_table(Position& pos, int *success)
   int p[TBPIECES];
 
   // Obtain the position's material signature key.
-  key = pos.material_key();
+  key = pos.material_key().get_syzygy();
 
   // Test for KvK.
-  if (key == (Zobrist::psq[WHITE][KING][0] ^ Zobrist::psq[BLACK][KING][0]))
+  if (key == (Zobrist::psq[WHITE][KING][0].get_syzygy() ^
+              Zobrist::psq[BLACK][KING][0].get_syzygy()))
     return 0;
 
   ptr2 = TB_hash[key >> (64 - TBHASHBITS)];
@@ -220,7 +221,7 @@ static int probe_dtz_table(Position& pos, int wdl, int *success)
   int p[TBPIECES];
 
   // Obtain the position's material signature key.
-  uint64 key = pos.material_key();
+  uint64 key = pos.material_key().get_syzygy();
 
   if (DTZ_table[0].key1 != key && DTZ_table[0].key2 != key) {
     for (i = 1; i < DTZ_ENTRIES; i++)

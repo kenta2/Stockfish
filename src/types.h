@@ -133,6 +133,10 @@ class Key {
   void xor_in(const Key& in){
     key ^= in.key;
   }
+  uint64_t get_syzygy() const {
+    //syzygy needs a 64-bit key
+    return key;
+  }
 };
 
 typedef uint64_t Bitboard;
