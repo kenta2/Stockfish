@@ -93,7 +93,7 @@ namespace {
 
     void clear() {
       stableCnt = 0;
-      expectedPosKey = 0;
+      expectedPosKey.setzero();
       pv[0] = pv[1] = pv[2] = MOVE_NONE;
     }
 

@@ -43,6 +43,7 @@
 #include <climits>
 #include <cstdint>
 #include <cstdlib>
+#include <iostream>
 
 #if defined(_MSC_VER)
 // Disable some silly and noisy warning from MSVC compiler
@@ -97,7 +98,43 @@ const bool Is64Bit = true;
 const bool Is64Bit = false;
 #endif
 
-typedef uint64_t Key;
+class Key {
+  uint64_t key;
+  friend bool operator<(const Key& x, const Key& y){
+    return x.key < y.key;
+  }
+  friend bool operator==(const Key& x, const Key& y){
+    return x.key == y.key;
+  }
+  friend Key operator^(const Key& x, const Key& y){
+    Key out;
+    out.key = x.key ^ y.key;
+    return out;
+  }
+  friend std::ostream& operator<<(std::ostream&, const Key&);
+ public:
+
+  Key(const Key& copy) : key(copy.key) {}
+  Key() {
+    // this constructor is sketchy because key is undefined
+  }
+  void setzero() { key = 0; }
+  uint16_t get16() const {
+    return key >> 48;
+  }
+  uint32_t get32() const {
+    return (uint32_t)key;
+  }
+  size_t getsize_t() const {
+    //little bit worried collisions when using only 64 bits in the
+    //transposition table
+    return (size_t) key;
+  }
+  void xor_in(const Key& in){
+    key ^= in.key;
+  }
+};
+
 typedef uint64_t Bitboard;
 
 const int MAX_MOVES = 256;

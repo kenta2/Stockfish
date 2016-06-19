@@ -141,7 +141,7 @@ void Position::init() {
 
   for (int cr = NO_CASTLING; cr <= ANY_CASTLING; ++cr)
   {
-      Zobrist::castling[cr] = 0;
+      Zobrist::castling[cr].setzero();
       Bitboard b = cr;
       while (b)
       {
@@ -318,7 +318,9 @@ void Position::set_castling_right(Color c, Square rfrom) {
 
 void Position::set_state(StateInfo* si) const {
 
-  si->key = si->pawnKey = si->materialKey = 0;
+  si->key.setzero();
+  si->pawnKey.setzero();
+  si->materialKey.setzero();
   si->nonPawnMaterial[WHITE] = si->nonPawnMaterial[BLACK] = VALUE_ZERO;
   si->psq = SCORE_ZERO;
 
@@ -328,28 +330,28 @@ void Position::set_state(StateInfo* si) const {
   {
       Square s = pop_lsb(&b);
       Piece pc = piece_on(s);
-      si->key ^= Zobrist::psq[color_of(pc)][type_of(pc)][s];
+      si->key.xor_in(Zobrist::psq[color_of(pc)][type_of(pc)][s]);
       si->psq += PSQT::psq[color_of(pc)][type_of(pc)][s];
   }
 
   if (si->epSquare != SQ_NONE)
-      si->key ^= Zobrist::enpassant[file_of(si->epSquare)];
+      si->key.xor_in(Zobrist::enpassant[file_of(si->epSquare)]);
 
   if (sideToMove == BLACK)
-      si->key ^= Zobrist::side;
+      si->key.xor_in(Zobrist::side);
 
-  si->key ^= Zobrist::castling[si->castlingRights];
+  si->key.xor_in(Zobrist::castling[si->castlingRights]);
 
   for (Bitboard b = pieces(PAWN); b; )
   {
       Square s = pop_lsb(&b);
-      si->pawnKey ^= Zobrist::psq[color_of(piece_on(s))][PAWN][s];
+      si->pawnKey.xor_in(Zobrist::psq[color_of(piece_on(s))][PAWN][s]);
   }
 
   for (Color c = WHITE; c <= BLACK; ++c)
       for (PieceType pt = PAWN; pt <= KING; ++pt)
           for (int cnt = 0; cnt < pieceCount[c][pt]; ++cnt)
-              si->materialKey ^= Zobrist::psq[c][pt][cnt];
+              si->materialKey.xor_in(Zobrist::psq[c][pt][cnt]);
 
   for (Color c = WHITE; c <= BLACK; ++c)
       for (PieceType pt = KNIGHT; pt <= QUEEN; ++pt)
@@ -679,7 +681,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
 
       captured = NO_PIECE_TYPE;
       st->psq += PSQT::psq[us][ROOK][rto] - PSQT::psq[us][ROOK][rfrom];
-      k ^= Zobrist::psq[us][ROOK][rfrom] ^ Zobrist::psq[us][ROOK][rto];
+      k.xor_in(Zobrist::psq[us][ROOK][rfrom] ^ Zobrist::psq[us][ROOK][rto]);
   }
 
   if (captured)
@@ -703,7 +705,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
               board[capsq] = NO_PIECE; // Not done by remove_piece()
           }
 
-          st->pawnKey ^= Zobrist::psq[them][PAWN][capsq];
+          st->pawnKey.xor_in(Zobrist::psq[them][PAWN][capsq]);
       }
       else
           st->nonPawnMaterial[them] -= PieceValue[MG][captured];
@@ -712,8 +714,8 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       remove_piece(them, captured, capsq);
 
       // Update material hash key and prefetch access to materialTable
-      k ^= Zobrist::psq[them][captured][capsq];
-      st->materialKey ^= Zobrist::psq[them][captured][pieceCount[them][captured]];
+      k.xor_in(Zobrist::psq[them][captured][capsq]);
+      st->materialKey.xor_in(Zobrist::psq[them][captured][pieceCount[them][captured]]);
       prefetch(thisThread->materialTable[st->materialKey]);
 
       // Update incremental scores
@@ -724,12 +726,12 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   }
 
   // Update hash key
-  k ^= Zobrist::psq[us][pt][from] ^ Zobrist::psq[us][pt][to];
+  k.xor_in(Zobrist::psq[us][pt][from] ^ Zobrist::psq[us][pt][to]);
 
   // Reset en passant square
   if (st->epSquare != SQ_NONE)
   {
-      k ^= Zobrist::enpassant[file_of(st->epSquare)];
+      k.xor_in(Zobrist::enpassant[file_of(st->epSquare)]);
       st->epSquare = SQ_NONE;
   }
 
@@ -737,7 +739,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
   if (st->castlingRights && (castlingRightsMask[from] | castlingRightsMask[to]))
   {
       int cr = castlingRightsMask[from] | castlingRightsMask[to];
-      k ^= Zobrist::castling[st->castlingRights & cr];
+      k.xor_in(Zobrist::castling[st->castlingRights & cr]);
       st->castlingRights &= ~cr;
   }
 
@@ -753,7 +755,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           && (attacks_from<PAWN>(to - pawn_push(us), us) & pieces(them, PAWN)))
       {
           st->epSquare = (from + to) / 2;
-          k ^= Zobrist::enpassant[file_of(st->epSquare)];
+          k.xor_in(Zobrist::enpassant[file_of(st->epSquare)]);
       }
 
       else if (type_of(m) == PROMOTION)
@@ -767,10 +769,10 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
           put_piece(us, promotion, to);
 
           // Update hash keys
-          k ^= Zobrist::psq[us][PAWN][to] ^ Zobrist::psq[us][promotion][to];
-          st->pawnKey ^= Zobrist::psq[us][PAWN][to];
-          st->materialKey ^=  Zobrist::psq[us][promotion][pieceCount[us][promotion]-1]
-                            ^ Zobrist::psq[us][PAWN][pieceCount[us][PAWN]];
+          k.xor_in(Zobrist::psq[us][PAWN][to] ^ Zobrist::psq[us][promotion][to]);
+          st->pawnKey.xor_in(Zobrist::psq[us][PAWN][to]);
+          st->materialKey.xor_in(Zobrist::psq[us][promotion][pieceCount[us][promotion]-1]
+                               ^ Zobrist::psq[us][PAWN][pieceCount[us][PAWN]]);
 
           // Update incremental score
           st->psq += PSQT::psq[us][promotion][to] - PSQT::psq[us][PAWN][to];
@@ -780,7 +782,7 @@ void Position::do_move(Move m, StateInfo& newSt, bool givesCheck) {
       }
 
       // Update pawn hash key and prefetch access to pawnsTable
-      st->pawnKey ^= Zobrist::psq[us][PAWN][from] ^ Zobrist::psq[us][PAWN][to];
+      st->pawnKey.xor_in(Zobrist::psq[us][PAWN][from] ^ Zobrist::psq[us][PAWN][to]);
       prefetch(thisThread->pawnsTable[st->pawnKey]);
 
       // Reset rule 50 draw counter
@@ -902,11 +904,11 @@ void Position::do_null_move(StateInfo& newSt) {
 
   if (st->epSquare != SQ_NONE)
   {
-      st->key ^= Zobrist::enpassant[file_of(st->epSquare)];
+      st->key.xor_in(Zobrist::enpassant[file_of(st->epSquare)]);
       st->epSquare = SQ_NONE;
   }
 
-  st->key ^= Zobrist::side;
+  st->key.xor_in(Zobrist::side);
   prefetch(TT.first_entry(st->key));
 
   ++st->rule50;
@@ -940,7 +942,7 @@ Key Position::key_after(Move m) const {
   Key k = st->key ^ Zobrist::side;
 
   if (captured)
-      k ^= Zobrist::psq[~us][captured][to];
+      k.xor_in(Zobrist::psq[~us][captured][to]);
 
   return k ^ Zobrist::psq[us][pt][to] ^ Zobrist::psq[us][pt][from];
 }
