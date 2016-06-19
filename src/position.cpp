@@ -134,10 +134,10 @@ void Position::init() {
   for (Color c = WHITE; c <= BLACK; ++c)
       for (PieceType pt = PAWN; pt <= KING; ++pt)
           for (Square s = SQ_A1; s <= SQ_H8; ++s)
-              Zobrist::psq[c][pt][s] = rng.rand<Key>();
+              Zobrist::psq[c][pt][s] = Key::rand(&rng);
 
   for (File f = FILE_A; f <= FILE_H; ++f)
-      Zobrist::enpassant[f] = rng.rand<Key>();
+      Zobrist::enpassant[f] = Key::rand(&rng);
 
   for (int cr = NO_CASTLING; cr <= ANY_CASTLING; ++cr)
   {
@@ -146,12 +146,12 @@ void Position::init() {
       while (b)
       {
           Key k = Zobrist::castling[1ULL << pop_lsb(&b)];
-          Zobrist::castling[cr].xor_in(k.is_nonzero() ? k : rng.rand<Key>());
+          Zobrist::castling[cr].xor_in(k.is_nonzero() ? k : Key::rand(&rng));
       }
   }
 
-  Zobrist::side = rng.rand<Key>();
-  Zobrist::exclusion  = rng.rand<Key>();
+  Zobrist::side = Key::rand(&rng);
+  Zobrist::exclusion  = Key::rand(&rng);
 }
 
 

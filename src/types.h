@@ -98,6 +98,8 @@ const bool Is64Bit = true;
 const bool Is64Bit = false;
 #endif
 
+class PRNG;
+
 class Key {
   uint64_t key;
   friend bool operator<(const Key& x, const Key& y){
@@ -140,6 +142,7 @@ class Key {
   bool is_nonzero() const {
     return key!=0;
   }
+  static Key rand(PRNG* rng);
 };
 
 typedef uint64_t Bitboard;
