@@ -45,16 +45,16 @@ struct TTEntry {
   void save(Key k, Value v, Bound b, Depth d, Move m, Value ev, uint8_t g) {
 
     // Preserve any existing move for the same position
-    if (m || (k.get16()) != key16)
+    if (m || (k.get16high()) != key16)
         move16 = (uint16_t)m;
 
     // Don't overwrite more valuable entries
-    if (  (k.get16()) != key16
+    if (  (k.get16high()) != key16
         || d > depth8 - 4
      /* || g != (genBound8 & 0xFC) // Matching non-zero keys are already refreshed by probe() */
         || b == BOUND_EXACT)
     {
-        key16     = k.get16();
+        key16     = k.get16high();
         value16   = (int16_t)v;
         eval16    = (int16_t)ev;
         genBound8 = (uint8_t)(g | b);

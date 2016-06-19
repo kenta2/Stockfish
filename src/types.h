@@ -119,7 +119,7 @@ class Key {
     // this constructor is sketchy because key is undefined
   }
   void setzero() { key = 0; }
-  uint16_t get16() const {
+  uint16_t get16high() const {
     return key >> 48;
   }
   uint32_t get32() const {
