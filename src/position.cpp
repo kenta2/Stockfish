@@ -146,7 +146,7 @@ void Position::init() {
       while (b)
       {
           Key k = Zobrist::castling[1ULL << pop_lsb(&b)];
-          Zobrist::castling[cr] ^= k ? k : rng.rand<Key>();
+          Zobrist::castling[cr].xor_in(k.is_nonzero() ? k : rng.rand<Key>());
       }
   }
 

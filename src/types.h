@@ -137,6 +137,9 @@ class Key {
     //syzygy needs a 64-bit key
     return key;
   }
+  bool is_nonzero() const {
+    return key!=0;
+  }
 };
 
 typedef uint64_t Bitboard;
