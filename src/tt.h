@@ -88,10 +88,11 @@ class TranspositionTable {
 
   struct Cluster {
     TTEntry entry[ClusterSize];
-    char padding[2]; // Align to a divisor of the cache line size
+    //char padding[2]; // Align to a divisor of the cache line size
   };
 
-  static_assert(CacheLineSize % sizeof(Cluster) == 0, "Cluster size incorrect");
+  //static_assert(CacheLineSize % sizeof(Cluster) == 0, "Cluster size incorrect");
+  static_assert(CacheLineSize >= sizeof(Cluster), "Cluster size too large");
 
 public:
  ~TranspositionTable() { free(mem); }
