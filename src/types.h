@@ -99,6 +99,7 @@ const bool Is64Bit = false;
 #endif
 
 class PRNG;
+class TTEKey;
 
 class Key {
   uint64_t key;
@@ -121,9 +122,14 @@ class Key {
     // this constructor is sketchy because key is undefined
   }
   void setzero() { key = 0; }
-  uint16_t get16high() const {
-    return key >> 48;
-  }
+
+  //Unfortunately, cannot make the just constructor
+  //TTEKey::TTEKey(Key) friend and still have that constructor inline
+  //because of mutual dependencies.  Key needs to see into the guts of
+  //TTEKey (to declare the friend), and TTEKey needs to see into guts
+  //of Key to implement the constructor.  We want inline for
+  //performance.
+  friend class TTEKey;
   uint32_t get32() const {
     return (uint32_t)key;
   }
@@ -471,5 +477,24 @@ inline Move make(Square from, Square to, PieceType pt = KNIGHT) {
 inline bool is_ok(Move m) {
   return from_sq(m) != to_sq(m); // Catch MOVE_NULL and MOVE_NONE
 }
+
+// key as stored in a transposition table entry
+class TTEKey {
+  uint16_t key;
+ public:
+  TTEKey(const Key& k) : key(k.key >> 48) {
+  }
+  friend bool operator!=(const TTEKey& x, const TTEKey& y){
+    return x.key != y.key;
+  }
+  friend bool operator==(const TTEKey& x, const TTEKey& y){
+    return x.key == y.key;
+  }
+  bool is_nonzero() const {
+    return key;
+  }
+
+};
+
 
 #endif // #ifndef TYPES_H_INCLUDED
