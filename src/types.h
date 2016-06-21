@@ -482,7 +482,7 @@ inline bool is_ok(Move m) {
 class TTEKey {
   uint32_t key;
  public:
- TTEKey(const Key& k) : key(k.key >> /*((8-sizeof(key))*8) */ 48 ) {
+ TTEKey(const Key& k) : key(k.key >> ((8-sizeof(key))*8)  /*48*/ ) {
   }
   friend bool operator!=(const TTEKey& x, const TTEKey& y){
     return x.key != y.key;
