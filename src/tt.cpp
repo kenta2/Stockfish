@@ -31,6 +31,18 @@ TranspositionTable TT; // Our global transposition table
 /// measured in megabytes. Transposition table consists of a power of 2 number
 /// of clusters and each cluster consists of ClusterSize number of TTEntry.
 
+/*
+  with TTEKey uint16_t then 10 bytes, 3 entries in a cluster = 30
+  with TTEKey uint32_t then 12 bytes, 3 entries in a cluster = 36
+
+  5000 megabytes, both choices lead to 2^27 clusters:
+  2^27*30 = 3840 megabyte (note well, padding alignment turned off)
+  2^27*36 = 4608 megabyte
+
+  48-bit TTEKey (not yet implemented) 2^27*48 = 5376 megabyte
+  though 37 (64-27) is the all the bits remaining if we stick with 64-bit keys
+ */
+
 void TranspositionTable::resize(size_t mbSize) {
 
   size_t newClusterCount = size_t(1) << msb((mbSize * 1024 * 1024) / sizeof(Cluster));

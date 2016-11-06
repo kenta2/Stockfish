@@ -481,8 +481,11 @@ inline bool is_ok(Move m) {
 // key as stored in a transposition table entry
 class TTEKey {
   uint32_t key;
+  // this is where the wider key size gets used
  public:
-  TTEKey(const Key& k) : key(k.key >> ((8-sizeof(key))*8)  /*48*/ ) {
+  // the widest permitted value is ((8-sizeof(key))*8) = 32
+  // 48 replicates the original 16-bit behavior (confirmed)
+  TTEKey(const Key& k) : key(k.key >> 32 ) {
   }
   friend bool operator!=(const TTEKey& x, const TTEKey& y){
     return x.key != y.key;
