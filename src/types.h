@@ -500,7 +500,7 @@ class TTEKey {
  public:
   // the widest permitted value is ((8-sizeof(key))*8) = 32
   // 48 replicates the original 16-bit behavior (confirmed)
-  TTEKey(const Key& k) : key(k.key >> 32 ) {
+  TTEKey(const Key& k) : key(k.key >> 48 ) {
   }
   friend bool operator!=(const TTEKey& x, const TTEKey& y){
     return x.key != y.key;
