@@ -436,30 +436,31 @@ inline bool is_ok(Move m) {
 }
 
 class Key {
-  uint64_t key;
+  uint64_t key1,key2;
   friend bool operator<(const Key& x, const Key& y){
-    return x.key < y.key;
+    return (x.key1 < y.key1) || ((x.key1 == y.key1) && (x.key2 < y.key2));
   }
   friend bool operator==(const Key& x, const Key& y){
-    return x.key == y.key;
+    return (x.key1 == y.key1) && (x.key2 == y.key2);
   }
   friend bool operator!=(const Key& x, const Key& y){
-    return x.key != y.key;
+    return (x.key1 != y.key1) || (x.key2 != y.key2);
   }
 
   friend Key operator^(const Key& x, const Key& y){
     Key out;
-    out.key = x.key ^ y.key;
+    out.key1 = x.key1 ^ y.key1;
+    out.key2 = x.key2 ^ y.key2;
     return out;
   }
   friend std::ostream& operator<<(std::ostream&, const Key&);
  public:
 
-  Key(const Key& copy) : key(copy.key) {}
+ Key(const Key& copy) : key1(copy.key1), key2(copy.key2) {}
   Key() {
     // this constructor is sketchy because key is undefined
   }
-  void setzero() { key = 0; }
+  void setzero() { key1 = key2 = 0;}
 
   //Unfortunately, cannot make the just constructor
   //TTEKey::TTEKey(Key) friend and still have that constructor inline
@@ -469,38 +470,40 @@ class Key {
   //performance.
   friend class TTEKey;
   uint32_t get32() const {
-    return (uint32_t)key;
+    return (uint32_t)key1;
   }
   size_t getsize_t() const {
     //little bit worried collisions when using only 64 bits in the
     //transposition table
-    return (size_t) key;
+    return (size_t) key1;
   }
   void xor_in(const Key& in){
-    key ^= in.key;
+    key1 ^= in.key1;
+    key2 ^= in.key2;
   }
   // this is an unusual operation
   void xor_move(const Move& m){
-    key ^= (uint64_t)m;
+    key1 ^= (uint64_t)m;
   }
   uint64_t get_syzygy() const {
     //syzygy needs a 64-bit key
-    return key;
+    return key1;
   }
   bool is_nonzero() const {
-    return key!=0;
+    return key1!=0 && key2!=0;
   }
-  static Key rand(PRNG* rng);
+  static Key rand(PRNG* rng1, PRNG* rng2);
 };
 
 // key as stored in a transposition table entry
 class TTEKey {
   uint32_t key;
+
   // this is where the wider key size gets used
  public:
   // the widest permitted value is ((8-sizeof(key))*8) = 32
   // 48 replicates the original 16-bit behavior (confirmed)
-  TTEKey(const Key& k) : key(k.key >> 48 ) {
+  TTEKey(const Key& k) : key(k.key1 >> 48) {
   }
   friend bool operator!=(const TTEKey& x, const TTEKey& y){
     return x.key != y.key;

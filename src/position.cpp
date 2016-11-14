@@ -124,14 +124,15 @@ std::ostream& operator<<(std::ostream& os, Position& pos) {
 
 void Position::init() {
 
-  PRNG rng(1070372);
+  PRNG rng1(1070372);
+  PRNG rng2(10703729);
 
   for (Piece pc : Pieces)
       for (Square s = SQ_A1; s <= SQ_H8; ++s)
-          Zobrist::psq[pc][s] = Key::rand(&rng);
+        Zobrist::psq[pc][s] = Key::rand(&rng1,&rng2);
 
   for (File f = FILE_A; f <= FILE_H; ++f)
-      Zobrist::enpassant[f] = Key::rand(&rng);
+      Zobrist::enpassant[f] = Key::rand(&rng1,&rng2);
 
   for (int cr = NO_CASTLING; cr <= ANY_CASTLING; ++cr)
   {
@@ -140,11 +141,11 @@ void Position::init() {
       while (b)
       {
           Key k = Zobrist::castling[1ULL << pop_lsb(&b)];
-          Zobrist::castling[cr].xor_in(k.is_nonzero() ? k : Key::rand(&rng));
+          Zobrist::castling[cr].xor_in(k.is_nonzero() ? k : Key::rand(&rng1,&rng2));
       }
   }
 
-  Zobrist::side = Key::rand(&rng);
+  Zobrist::side = Key::rand(&rng1,&rng2);
 }
 
 
