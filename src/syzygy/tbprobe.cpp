@@ -265,7 +265,7 @@ class HashTable {
     std::deque<DTZEntry> dtzTable;
 
     void insert(Key key, WDLEntry* wdl, DTZEntry* dtz) {
-        Entry* entry = hashTable[key >> (64 - TBHASHBITS)];
+        Entry* entry = hashTable[key.get_syzygy() >> (64 - TBHASHBITS)];
 
         for (int i = 0; i < HSHMAX; ++i, ++entry)
             if (!entry->second.first || entry->first == key) {
@@ -280,7 +280,7 @@ class HashTable {
 public:
     template<typename E, int I = std::is_same<E, WDLEntry>::value ? 0 : 1>
     E* get(Key key) {
-      Entry* entry = hashTable[key >> (64 - TBHASHBITS)];
+      Entry* entry = hashTable[key.get_syzygy() >> (64 - TBHASHBITS)];
 
       for (int i = 0; i < HSHMAX; ++i, ++entry)
           if (entry->first == key)

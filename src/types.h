@@ -109,6 +109,10 @@ class Key {
   friend bool operator==(const Key& x, const Key& y){
     return x.key == y.key;
   }
+  friend bool operator!=(const Key& x, const Key& y){
+    return x.key != y.key;
+  }
+
   friend Key operator^(const Key& x, const Key& y){
     Key out;
     out.key = x.key ^ y.key;
