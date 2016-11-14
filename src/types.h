@@ -101,60 +101,6 @@ const bool Is64Bit = false;
 class PRNG;
 class TTEKey;
 
-class Key {
-  uint64_t key;
-  friend bool operator<(const Key& x, const Key& y){
-    return x.key < y.key;
-  }
-  friend bool operator==(const Key& x, const Key& y){
-    return x.key == y.key;
-  }
-  friend bool operator!=(const Key& x, const Key& y){
-    return x.key != y.key;
-  }
-
-  friend Key operator^(const Key& x, const Key& y){
-    Key out;
-    out.key = x.key ^ y.key;
-    return out;
-  }
-  friend std::ostream& operator<<(std::ostream&, const Key&);
- public:
-
-  Key(const Key& copy) : key(copy.key) {}
-  Key() {
-    // this constructor is sketchy because key is undefined
-  }
-  void setzero() { key = 0; }
-
-  //Unfortunately, cannot make the just constructor
-  //TTEKey::TTEKey(Key) friend and still have that constructor inline
-  //because of mutual dependencies.  Key needs to see into the guts of
-  //TTEKey (to declare the friend), and TTEKey needs to see into guts
-  //of Key to implement the constructor.  We want inline for
-  //performance.
-  friend class TTEKey;
-  uint32_t get32() const {
-    return (uint32_t)key;
-  }
-  size_t getsize_t() const {
-    //little bit worried collisions when using only 64 bits in the
-    //transposition table
-    return (size_t) key;
-  }
-  void xor_in(const Key& in){
-    key ^= in.key;
-  }
-  uint64_t get_syzygy() const {
-    //syzygy needs a 64-bit key
-    return key;
-  }
-  bool is_nonzero() const {
-    return key!=0;
-  }
-  static Key rand(PRNG* rng);
-};
-
 typedef uint64_t Bitboard;
 
 const int MAX_MOVES = 256;
@@ -488,6 +434,64 @@ inline Move make(Square from, Square to, PieceType pt = KNIGHT) {
 inline bool is_ok(Move m) {
   return from_sq(m) != to_sq(m); // Catch MOVE_NULL and MOVE_NONE
 }
+
+class Key {
+  uint64_t key;
+  friend bool operator<(const Key& x, const Key& y){
+    return x.key < y.key;
+  }
+  friend bool operator==(const Key& x, const Key& y){
+    return x.key == y.key;
+  }
+  friend bool operator!=(const Key& x, const Key& y){
+    return x.key != y.key;
+  }
+
+  friend Key operator^(const Key& x, const Key& y){
+    Key out;
+    out.key = x.key ^ y.key;
+    return out;
+  }
+  friend std::ostream& operator<<(std::ostream&, const Key&);
+ public:
+
+  Key(const Key& copy) : key(copy.key) {}
+  Key() {
+    // this constructor is sketchy because key is undefined
+  }
+  void setzero() { key = 0; }
+
+  //Unfortunately, cannot make the just constructor
+  //TTEKey::TTEKey(Key) friend and still have that constructor inline
+  //because of mutual dependencies.  Key needs to see into the guts of
+  //TTEKey (to declare the friend), and TTEKey needs to see into guts
+  //of Key to implement the constructor.  We want inline for
+  //performance.
+  friend class TTEKey;
+  uint32_t get32() const {
+    return (uint32_t)key;
+  }
+  size_t getsize_t() const {
+    //little bit worried collisions when using only 64 bits in the
+    //transposition table
+    return (size_t) key;
+  }
+  void xor_in(const Key& in){
+    key ^= in.key;
+  }
+  // this is an unusual operation
+  void xor_move(const Move& m){
+    key ^= (uint64_t)m;
+  }
+  uint64_t get_syzygy() const {
+    //syzygy needs a 64-bit key
+    return key;
+  }
+  bool is_nonzero() const {
+    return key!=0;
+  }
+  static Key rand(PRNG* rng);
+};
 
 // key as stored in a transposition table entry
 class TTEKey {
