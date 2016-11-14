@@ -94,7 +94,7 @@ class TranspositionTable {
   };
 
   //static_assert(CacheLineSize % sizeof(Cluster) == 0, "Cluster size incorrect");
-  static_assert(CacheLineSize >= sizeof(Cluster), "Cluster size too large");
+  //static_assert(CacheLineSize >= sizeof(Cluster), "Cluster size too large");
 
 public:
  ~TranspositionTable() { free(mem); }

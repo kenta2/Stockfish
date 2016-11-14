@@ -490,29 +490,29 @@ class Key {
     return key1;
   }
   bool is_nonzero() const {
-    return key1!=0 && key2!=0;
+    return key1!=0 || key2!=0;
   }
   static Key rand(PRNG* rng1, PRNG* rng2);
 };
 
 // key as stored in a transposition table entry
 class TTEKey {
-  uint32_t key;
-
+  uint16_t key1; // could take even more bits if we wanted
+  uint64_t key2;
   // this is where the wider key size gets used
  public:
   // the widest permitted value is ((8-sizeof(key))*8) = 32
   // 48 replicates the original 16-bit behavior (confirmed)
-  TTEKey(const Key& k) : key(k.key1 >> 48) {
+  TTEKey(const Key& k) : key1(k.key1 >> 48), key2(0) {
   }
   friend bool operator!=(const TTEKey& x, const TTEKey& y){
-    return x.key != y.key;
+    return (x.key1 != y.key1) || (x.key2 != y.key2);
   }
   friend bool operator==(const TTEKey& x, const TTEKey& y){
-    return x.key == y.key;
+    return (x.key1 == y.key1) && (x.key2 == y.key2);
   }
   bool is_nonzero() const {
-    return key;
+    return key1 || key2;
   }
 
 };
