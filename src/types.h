@@ -497,28 +497,28 @@ class Key {
 
 // key as stored in a transposition table entry
 class TTEKey {
-  uint16_t key1; // could take even more bits if we wanted
-  uint64_t key2;
+  uint64_t key;
+
+  //even wider than 64 is available if wanted,
+  //stealing from the top half of key1
+
   // this is where the wider key size gets used
  public:
-  // the widest permitted value is ((8-sizeof(key))*8) = 32
+
   // 48 replicates the original 16-bit behavior (confirmed)
-  TTEKey(const Key& k) : key1(k.key1 >> 48), key2(k.key2 >> 24) {
-    // no hash size change, newClusterCount 131072 = 17
-    //key2 shift 0 perfect,
-    //24 perfect 24 = 40 + 16 + 17 = 73, so birthday at 36 or 64 billion
-    //32 would be less 8 or 65, so birthday at 4 billion
-    // hash table size does affect results, comparing 0 (no hash change)
-    // with 24 (hash 5000)
+ TTEKey(const Key& k) : //key(k.key1 >> 48)
+  key(k.key2)
+    {
+      // 64 bits + typically 17..26 is plenty birthday at 2^40 = trillion
   }
   friend bool operator!=(const TTEKey& x, const TTEKey& y){
-    return (x.key1 != y.key1) || (x.key2 != y.key2);
+    return x.key != y.key;
   }
   friend bool operator==(const TTEKey& x, const TTEKey& y){
-    return (x.key1 == y.key1) && (x.key2 == y.key2);
+    return x.key == y.key;
   }
   bool is_nonzero() const {
-    return key1 || key2;
+    return key;
   }
 
 };
