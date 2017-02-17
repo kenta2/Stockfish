@@ -452,17 +452,17 @@ install:
 
 #clean all
 clean: objclean profileclean
-	@rm -f .depend *~ core 
+	rm -f .depend *~ core
 
 # clean binaries and objects
 objclean:
-	@rm -f $(EXE) $(EXE).exe *.o ./syzygy/*.o
+	rm -f $(EXE) $(EXE).exe *.o ./syzygy/*.o
 
 # clean auxiliary profiling files
 profileclean:
-	@rm -rf profdir
-	@rm -f bench.txt *.gcda ./syzygy/*.gcda *.gcno ./syzygy/*.gcno
-	@rm -f stockfish.profdata *.profraw
+	rm -rf profdir
+	rm -f bench.txt *.gcda ./syzygy/*.gcda *.gcno ./syzygy/*.gcno
+	rm -f stockfish.profdata *.profraw
 
 default:
 	help
