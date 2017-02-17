@@ -35,6 +35,7 @@ PREFIX = /usr/local
 BINDIR = $(PREFIX)/bin
 
 ### Built-in benchmark for pgo-builds
+# one can pass additional arguments to bench here, see benchmark.cpp
 PGOBENCH = ./$(EXE) bench
 
 ### Object files
