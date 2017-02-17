@@ -1,7 +1,7 @@
 /*
   Stockfish, a UCI chess playing engine derived from Glaurung 2.1
   Copyright (c) 2013 Ronald de Man
-  Copyright (C) 2016 Marco Costalba, Lucas Braesch
+  Copyright (C) 2016-2017 Marco Costalba, Lucas Braesch
 
   Stockfish is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -65,10 +65,10 @@ inline Square operator^(Square s, int i) { return Square(int(s) ^ i); }
 // like captures and pawn moves but we can easily recover the correct dtz of the
 // previous move if we know the position's WDL score.
 int dtz_before_zeroing(WDLScore wdl) {
-    return wdl == WDLWin        ?  1   :
-           wdl == WDLCursedWin  ?  101 :
-           wdl == WDLCursedLoss ? -101 :
-           wdl == WDLLoss       ? -1   : 0;
+    return wdl == WDLWin         ?  1   :
+           wdl == WDLCursedWin   ?  101 :
+           wdl == WDLBlessedLoss ? -101 :
+           wdl == WDLLoss        ? -1   : 0;
 }
 
 // Return the sign of a number (-1, 0, 1)
@@ -125,18 +125,39 @@ struct PairsData {
     int groupLen[TBPIECES+1];      // Number of pieces in a given group: KRKN -> (3, 1)
 };
 
-// Helper struct to avoid to manually define entry copy c'tor as we should
-// because default one is not compatible with std::atomic_bool.
+// Helper struct to avoid manually defining entry copy constructor as we
+// should because the default one is not compatible with std::atomic_bool.
 struct Atomic {
     Atomic() = default;
     Atomic(const Atomic& e) { ready = e.ready.load(); } // MSVC 2013 wants assignment within body
     std::atomic_bool ready;
 };
 
-struct WDLEntry : public Atomic {
-    WDLEntry(const std::string& code);
-   ~WDLEntry();
+// We define types for the different parts of the WLDEntry and DTZEntry with
+// corresponding specializations for pieces or pawns.
 
+struct WLDEntryPiece {
+    PairsData* precomp;
+};
+
+struct WDLEntryPawn {
+    uint8_t pawnCount[2];     // [Lead color / other color]
+    WLDEntryPiece file[2][4]; // [wtm / btm][FILE_A..FILE_D]
+};
+
+struct DTZEntryPiece {
+    PairsData* precomp;
+    uint16_t map_idx[4]; // WDLWin, WDLLoss, WDLCursedWin, WDLBlessedLoss
+    uint8_t* map;
+};
+
+struct DTZEntryPawn {
+    uint8_t pawnCount[2];
+    DTZEntryPiece file[4];
+    uint8_t* map;
+};
+
+struct TBEntry : public Atomic {
     void* baseAddress;
     uint64_t mapping;
     Key key;
@@ -144,46 +165,24 @@ struct WDLEntry : public Atomic {
     int pieceCount;
     bool hasPawns;
     bool hasUniquePieces;
-    union {
-        struct {
-            PairsData* precomp;
-        } pieceTable[2]; // [wtm / btm]
+};
 
-        struct {
-            uint8_t pawnCount[2]; // [Lead color / other color]
-            struct {
-                PairsData* precomp;
-            } file[2][4]; // [wtm / btm][FILE_A..FILE_D]
-        } pawnTable;
+// Now the main types: WDLEntry and DTZEntry
+struct WDLEntry : public TBEntry {
+    WDLEntry(const std::string& code);
+   ~WDLEntry();
+    union {
+        WLDEntryPiece pieceTable[2]; // [wtm / btm]
+        WDLEntryPawn  pawnTable;
     };
 };
 
-struct DTZEntry : public Atomic {
+struct DTZEntry : public TBEntry {
     DTZEntry(const WDLEntry& wdl);
    ~DTZEntry();
-
-    void* baseAddress;
-    uint64_t mapping;
-    Key key;
-    Key key2;
-    int pieceCount;
-    bool hasPawns;
-    bool hasUniquePieces;
     union {
-        struct {
-            PairsData* precomp;
-            uint16_t map_idx[4]; // WDLWin, WDLLoss, WDLCursedWin, WDLCursedLoss
-            uint8_t* map;
-        } pieceTable;
-
-        struct {
-            uint8_t pawnCount[2];
-            struct {
-                PairsData* precomp;
-                uint16_t map_idx[4];
-            } file[4];
-            uint8_t* map;
-        } pawnTable;
+        DTZEntryPiece pieceTable;
+        DTZEntryPawn  pawnTable;
     };
 };
 
@@ -229,10 +228,10 @@ template<typename T, int Half = sizeof(T) / 2, int End = sizeof(T) - 1>
 inline void swap_byte(T& x)
 {
     char tmp, *c = (char*)&x;
-    if (Half) // Fix a MSVC 2015 warning
-        for (int i = 0; i < Half; ++i)
-            tmp = c[i], c[i] = c[End - i], c[End - i] = tmp;
+    for (int i = 0; i < Half; ++i)
+        tmp = c[i], c[i] = c[End - i], c[End - i] = tmp;
 }
+template<> inline void swap_byte<uint8_t, 0, 0>(uint8_t&) {}
 
 template<typename T, int LE> T number(void* addr)
 {
@@ -661,7 +660,7 @@ int map_score(DTZEntry* entry, File f, int value, WDLScore wdl) {
     if (   (wdl == WDLWin  && !(flags & TBFlag::WinPlies))
         || (wdl == WDLLoss && !(flags & TBFlag::LossPlies))
         ||  wdl == WDLCursedWin
-        ||  wdl == WDLCursedLoss)
+        ||  wdl == WDLBlessedLoss)
         value *= 2;
 
     return value + 1;
@@ -1444,7 +1443,7 @@ int Tablebases::probe_dtz(Position& pos, ProbeState* result) {
         return 0;
 
     if (*result != CHANGE_STM)
-        return (dtz + 100 * (wdl == WDLCursedLoss || wdl == WDLCursedWin)) * sign_of(wdl);
+        return (dtz + 100 * (wdl == WDLBlessedLoss || wdl == WDLCursedWin)) * sign_of(wdl);
 
     // DTZ stores results for the other side, so we need to do a 1-ply search and
     // find the winning move that minimizes DTZ.
@@ -1567,12 +1566,12 @@ bool Tablebases::root_probe(Position& pos, Search::RootMoves& rootMoves, Value& 
 
     // Use 50-move counter to determine whether the root position is
     // won, lost or drawn.
-    int wdl = 0;
+    WDLScore wdl = WDLDraw;
 
     if (dtz > 0)
-        wdl = (dtz + cnt50 <= 100) ? 2 : 1;
+        wdl = (dtz + cnt50 <= 100) ? WDLWin : WDLCursedWin;
     else if (dtz < 0)
-        wdl = (-dtz + cnt50 <= 100) ? -2 : -1;
+        wdl = (-dtz + cnt50 <= 100) ? WDLLoss : WDLBlessedLoss;
 
     // Determine the score to report to the user.
     score = WDL_to_value[wdl + 2];
@@ -1580,9 +1579,9 @@ bool Tablebases::root_probe(Position& pos, Search::RootMoves& rootMoves, Value& 
     // If the position is winning or losing, but too few moves left, adjust the
     // score to show how close it is to winning or losing.
     // NOTE: int(PawnValueEg) is used as scaling factor in score_to_uci().
-    if (wdl == 1 && dtz <= 100)
+    if (wdl == WDLCursedWin && dtz <= 100)
         score = (Value)(((200 - dtz - cnt50) * int(PawnValueEg)) / 200);
-    else if (wdl == -1 && dtz >= -100)
+    else if (wdl == WDLBlessedLoss && dtz >= -100)
         score = -(Value)(((200 + dtz - cnt50) * int(PawnValueEg)) / 200);
 
     // Now be a bit smart about filtering out moves.
