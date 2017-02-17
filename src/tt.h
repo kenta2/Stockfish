@@ -86,7 +86,8 @@ private:
 class TranspositionTable {
 
   static const int CacheLineSize = 64;
-  static const int ClusterSize = 3;
+  static const int ClusterSize = 11;
+  // speed difference between 3 and 11 seems lost in the noise
 
   struct Cluster {
     TTEntry entry[ClusterSize];
