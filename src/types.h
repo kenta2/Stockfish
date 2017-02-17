@@ -517,8 +517,12 @@ class TTEKey {
  public:
 
   // 48 replicates the original 16-bit behavior (confirmed)
- TTEKey(const Key& k) : //key(k.key1 >> 48)
-  key(k.key2)
+ TTEKey(const Key& k) :
+#ifdef TT_TESTING
+  key(k.key1 >> 48)
+#else
+    key(k.key2)
+#endif
     {
       // 64 bits + typically 17..26 is plenty birthday at 2^40 = trillion
   }
